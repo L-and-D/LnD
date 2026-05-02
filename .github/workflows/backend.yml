@@ -1,0 +1,168 @@
+name: Backend CI/CD
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      trigger:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+
+  pr-checks:
+    if: inputs.trigger == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Sonar
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_KEY }}
+            -Dsonar.sources=.
+
+      - name: Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+
+      - name: Snyk
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Notify
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+          subject: "Pipeline Status - ${{ job.status }}"
+          body: |
+            Status: ${{ job.status }}
+            Repository: ${{ github.repository }}
+            Workflow: ${{ github.workflow }}
+            Run ID: ${{ github.run_id }}
+      
+            View Logs:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  build:
+    if: inputs.trigger == 'push'
+    runs-on: ubuntu-latest
+
+    # 🔥 CRITICAL FIX FOR REUSABLE WORKFLOW GHCR PUSH
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Generate image tag
+      - id: meta
+        run: |
+          SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=sha-$SHA" >> $GITHUB_OUTPUT
+          echo "image=${{ inputs.image }}:sha-$SHA" >> $GITHUB_OUTPUT
+
+      # Detect service path
+      - id: context
+        shell: bash
+        run: |
+          SERVICE_DIR="./${{ inputs.service }}"
+          if [ -d "$SERVICE_DIR" ]; then
+            echo "path=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=." >> "$GITHUB_OUTPUT"
+          fi
+
+      # ✅ FIX: USE PAT (THIS IS THE ACTUAL SOLUTION FOR YOUR ERROR)
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN  }}
+
+      # Build + Push (single step, correct)
+      - name: Build & Push Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.context.outputs.path }}
+          push: true
+          tags: ${{ steps.meta.outputs.image }}
+          no-cache: true
+
+      # Security scan
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          severity: CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
+          scanners: vuln
+
+      # Trigger downstream deployment
+      - name: Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GH_PAT }}
+          repository: l-and-d-management-system/l-and-d-main
+          event-type: service-image-updated
+          client-payload: |
+            {
+              "service_name": "${{ inputs.service }}",
+              "image": "${{ steps.meta.outputs.image }}",
+              "sha_tag": "${{ steps.meta.outputs.tag }}",
+              "commit_sha": "${{ github.sha }}"
+            }
+
+      # Notify
+      - name: Notify
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+          subject: "Pipeline Status - ${{ job.status }}"
+          body: |
+            Status: ${{ job.status }}
+            Repository: ${{ github.repository }}
+            Workflow: ${{ github.workflow }}
+            Run ID: ${{ github.run_id }}
+      
+            View Logs:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
