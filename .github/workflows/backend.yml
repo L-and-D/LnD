@@ -136,7 +136,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GH_PAT }}
-          repository: l-and-d-management-system/l-and-d-main
+          repository: l-and-d/lnd
           event-type: service-image-updated
           client-payload: |
             {
