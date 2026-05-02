@@ -1,4 +1,6 @@
-image: nimeshsv814/ld-auth-service:v1.0.0
+image:
+  repository: ghcr.io/l-and-d/ld-auth-service
+  tag: sha-04c78e9
 replicas: 1
 port: 3001
 namespace: dev
