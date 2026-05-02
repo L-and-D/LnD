@@ -1,3 +1,110 @@
+# name: Release Prod
+
+# on:
+#   release:
+#     types: [published]
+
+# permissions:
+#   contents: write
+#   packages: write
+
+# jobs:
+#   release:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#       packages: write
+
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           token: ${{ secrets.GITHUB_TOKEN }}
+
+#       - name: Install yq
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y jq
+#           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+#           sudo chmod +x /usr/bin/yq
+
+#       - name: Set release variables
+#         run: |
+#           TAG_NAME="${{ github.event.release.tag_name }}"
+
+#           if [[ "$TAG_NAME" =~ ^(.+)-(v.+)$ ]]; then
+#             echo "RELEASE_SERVICE=${BASH_REMATCH[1]}" >> $GITHUB_ENV
+#             echo "RELEASE_TAG=${BASH_REMATCH[2]}" >> $GITHUB_ENV
+#           else
+#             echo "Invalid tag format"
+#             exit 1
+#           fi
+
+#       # GHCR LOGIN 
+#       - name: Login to GHCR
+#         uses: docker/login-action@v3
+#         with:
+#           registry: ghcr.io
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
+
+  
+#       - name: Release service (Promote existing image)
+#         run: |
+#           SERVICE="${RELEASE_SERVICE}"
+
+#           IMAGE_REPOSITORY=$(yq '.image.repository' helm/service/${SERVICE}/values-dev.yaml)
+#           SOURCE_TAG=$(yq '.image.tag' helm/service/${SERVICE}/values-dev.yaml)
+
+#           echo "Releasing $SERVICE"
+#           echo "Repo: $IMAGE_REPOSITORY"
+#           echo "Source Tag: $SOURCE_TAG"
+#           echo "Release Tag: $RELEASE_TAG"
+
+#           # STEP 1: Pull existing DEV image
+#           docker pull ${IMAGE_REPOSITORY}:${SOURCE_TAG}
+
+#           # STEP 2: Retag as release
+#           docker tag \
+#             ${IMAGE_REPOSITORY}:${SOURCE_TAG} \
+#             ${IMAGE_REPOSITORY}:${RELEASE_TAG}
+
+#           # STEP 3: Push release tag
+#           docker push ${IMAGE_REPOSITORY}:${RELEASE_TAG}
+
+#           # STEP 4: Update Helm prod values
+#           yq -i ".image.tag = \"${RELEASE_TAG}\"" \
+#             helm/service/${SERVICE}/values-prod.yaml
+#       - name: Commit
+#         env:
+#           SERVICE: ${{ github.event.client_payload.service_name }}
+#           TAG: ${{ github.event.client_payload.sha_tag }}
+#         run: |
+#           git config user.name ci-bot
+#           git config user.email ci@bot.com
+#           git add helm/service/${RELEASE_SERVICE}/values-prod.yaml
+#           git commit -m "update ${RELEASE_SERVICE} → ${RELEASE_TAG}"
+#           git push origin HEAD:main
+
+#       - name: Notify
+#         if: always()
+#         uses: dawidd6/action-send-mail@v3
+#         with:
+#           server_address: ${{ secrets.SMTP_HOST }}
+#           server_port: ${{ secrets.SMTP_PORT }}
+#           username: ${{ secrets.SMTP_USER }}
+#           password: ${{ secrets.SMTP_PASS }}
+#           to: ${{ secrets.NOTIFY_EMAIL }}
+#           from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+#           subject: "Prod Release - ${{ job.status }}"
+#           body: |
+#             Release: ${{ github.event.release.tag_name }}
+#             Service: ${{ env.RELEASE_SERVICE }}
+#             Status: ${{ job.status }}
+
+#             Logs:
+#             https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
 name: Release Prod
 
 on:
@@ -40,7 +147,6 @@ jobs:
             exit 1
           fi
 
-      # GHCR LOGIN 
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -48,13 +154,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-  
       - name: Release service (Promote existing image)
         run: |
           SERVICE="${RELEASE_SERVICE}"
 
-          IMAGE_REPOSITORY=$(yq '.image.repository' helm/service/${SERVICE}/values-dev.yaml)
-          SOURCE_TAG=$(yq '.image.tag' helm/service/${SERVICE}/values-dev.yaml)
+          IMAGE_REPOSITORY=$(yq '.image.repository' helm/services/${SERVICE}/values-dev.yaml)  # ← fixed
+          SOURCE_TAG=$(yq '.image.tag' helm/services/${SERVICE}/values-dev.yaml)                # ← fixed
 
           echo "Releasing $SERVICE"
           echo "Repo: $IMAGE_REPOSITORY"
@@ -74,15 +179,13 @@ jobs:
 
           # STEP 4: Update Helm prod values
           yq -i ".image.tag = \"${RELEASE_TAG}\"" \
-            helm/service/${SERVICE}/values-prod.yaml
+            helm/services/${SERVICE}/values-prod.yaml                                           # ← fixed
+
       - name: Commit
-        env:
-          SERVICE: ${{ github.event.client_payload.service_name }}
-          TAG: ${{ github.event.client_payload.sha_tag }}
         run: |
           git config user.name ci-bot
           git config user.email ci@bot.com
-          git add helm/service/${RELEASE_SERVICE}/values-prod.yaml
+          git add helm/services/${RELEASE_SERVICE}/values-prod.yaml                            # ← fixed
           git commit -m "update ${RELEASE_SERVICE} → ${RELEASE_TAG}"
           git push origin HEAD:main
 
