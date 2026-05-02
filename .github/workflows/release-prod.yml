@@ -53,7 +53,7 @@ jobs:
         run: |
           SERVICE="${RELEASE_SERVICE}"
 
-          IMAGE_REPOSITORY=$(yq '.image.repository' helm/services/${SERVICE}/values-dev.yaml)
+          IMAGE_REPOSITORY=$(yq '.image.repository' helm/service/${SERVICE}/values-dev.yaml)
           SOURCE_TAG=$(yq '.image.tag' helm/service/${SERVICE}/values-dev.yaml)
 
           echo "Releasing $SERVICE"
@@ -74,7 +74,7 @@ jobs:
 
           # STEP 4: Update Helm prod values
           yq -i ".image.tag = \"${RELEASE_TAG}\"" \
-            helm/services/${SERVICE}/values-prod.yaml
+            helm/service/${SERVICE}/values-prod.yaml
       - name: Commit
         env:
           SERVICE: ${{ github.event.client_payload.service_name }}
@@ -82,7 +82,7 @@ jobs:
         run: |
           git config user.name ci-bot
           git config user.email ci@bot.com
-          git add helm/services/${RELEASE_SERVICE}/values-prod.yaml
+          git add helm/service/${RELEASE_SERVICE}/values-prod.yaml
           git commit -m "update ${RELEASE_SERVICE} → ${RELEASE_TAG}"
           git push origin HEAD:main
 
