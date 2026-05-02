@@ -154,12 +154,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug file structure
+        run: |
+          echo "Current directory: $(pwd)"
+          find helm/ -type f -name "*.yaml"
+
       - name: Release service (Promote existing image)
         run: |
           SERVICE="${RELEASE_SERVICE}"
 
-          IMAGE_REPOSITORY=$(yq '.image.repository' helm/services/${SERVICE}/values-dev.yaml)  # ← fixed
-          SOURCE_TAG=$(yq '.image.tag' helm/services/${SERVICE}/values-dev.yaml)                # ← fixed
+          IMAGE_REPOSITORY=$(yq '.image.repository' helm/services/${SERVICE}/values-dev.yaml)
+          SOURCE_TAG=$(yq '.image.tag' helm/services/${SERVICE}/values-dev.yaml)
 
           echo "Releasing $SERVICE"
           echo "Repo: $IMAGE_REPOSITORY"
@@ -179,13 +184,13 @@ jobs:
 
           # STEP 4: Update Helm prod values
           yq -i ".image.tag = \"${RELEASE_TAG}\"" \
-            helm/services/${SERVICE}/values-prod.yaml                                           # ← fixed
+            helm/services/${SERVICE}/values-prod.yaml
 
       - name: Commit
         run: |
           git config user.name ci-bot
           git config user.email ci@bot.com
-          git add helm/services/${RELEASE_SERVICE}/values-prod.yaml                            # ← fixed
+          git add helm/services/${RELEASE_SERVICE}/values-prod.yaml
           git commit -m "update ${RELEASE_SERVICE} → ${RELEASE_TAG}"
           git push origin HEAD:main
 
