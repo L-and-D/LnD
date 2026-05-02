@@ -54,7 +54,7 @@ jobs:
           SERVICE="${RELEASE_SERVICE}"
 
           IMAGE_REPOSITORY=$(yq '.image.repository' helm/services/${SERVICE}/values-dev.yaml)
-          SOURCE_TAG=$(yq '.image.tag' helm/services/${SERVICE}/values-dev.yaml)
+          SOURCE_TAG=$(yq '.image.tag' helm/service/${SERVICE}/values-dev.yaml)
 
           echo "Releasing $SERVICE"
           echo "Repo: $IMAGE_REPOSITORY"
