@@ -1,4 +1,6 @@
-image: nimeshsv814/ld-api-gateway:v1.0.4
+image:
+  repository: l-and-d/ld-api-gateway
+  tag: v1.0.4
 replicas: 1
 port: 3000
 namespace: prod

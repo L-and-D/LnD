@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/nimeshsv814/ld
+    repoURL: https://github.com/l-and-d/ld
     targetRevision: main
-    path: helm/services/frontend
+    path: helm/services/ld-frontend
     helm:
       releaseName: frontend
       valueFiles:
