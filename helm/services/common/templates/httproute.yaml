@@ -48,15 +48,15 @@ spec:
     - path:
         type: PathPrefix
         value: /notifications
-    backendRefs:
-    - name: notification-service
-      port: 3005
-    filters:
+    filters:                          # ← moved up, sibling to matches/backendRefs
     - type: URLRewrite
       urlRewrite:
         path:
           type: ReplacePrefixMatch
           replacePrefixMatch: /
+    backendRefs:
+    - name: notification-service
+      port: 3005
   - matches:
     - path:
         type: PathPrefix
