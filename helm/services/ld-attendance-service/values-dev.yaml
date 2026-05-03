@@ -1,6 +1,6 @@
 image:
   repository: l-and-d/ld-attendance-service
-  tag: v1.0.0
+  tag: sha-ac6271c
 replicas: 1
 port: 3004
 namespace: dev
