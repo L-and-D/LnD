@@ -1,6 +1,6 @@
 image:
-  repository: l-and-d/ld-user-service
-  tag: v1.0.0
+  repository: ghcr.io/l-and-d/ld-user-service
+  tag: sha-7b7c29f
 replicas: 1
 port: 3002
 namespace: dev
