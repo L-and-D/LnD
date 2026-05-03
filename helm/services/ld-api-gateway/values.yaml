@@ -1,5 +1,5 @@
 image:
-  repository: l-and-d/ld-api-gateway
+  repository: ghcr.io/l-and-d/ld-api-gateway
   tag: v1.0.4
 replicas: 1
 port: 3000
