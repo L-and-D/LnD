@@ -62,6 +62,6 @@ spec:
         type: PathPrefix
         value: /
     backendRefs:
-    - name: ld-frontend
+    - name: frontend
       port: 80
 {{- end }}
