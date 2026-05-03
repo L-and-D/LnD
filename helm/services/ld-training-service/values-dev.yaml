@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/l-and-d/ld-training-service
-  tag: v1.0.0
+  tag: sha-aec76cf
 replicas: 1
 port: 3003
 namespace: dev
