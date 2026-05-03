@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/l-and-d/ld-api-gateway
-  tag: ""
+  tag: "v1.0.0"
 replicas: 1
 port: 3000
 namespace: prod
