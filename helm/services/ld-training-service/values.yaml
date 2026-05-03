@@ -1,5 +1,5 @@
 image:
-  repository: l-and-d/ld-training-service
+  repository: ghcr.io/l-and-d/ld-training-service
   tag: v1.0.0
 replicas: 1
 port: 3003
