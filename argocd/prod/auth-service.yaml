@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/l-and-d/ld
+    repoURL: https://github.com/l-and-d/lnd
     targetRevision: main
     path: helm/services/ld-auth-service
     helm:
